@@ -1,0 +1,165 @@
+{
+    "Queries": [
+        {
+            "Name": "mssql_process_status",
+            "Query": "SELECT status collate SQL_Latin1_General_CP1_CI_AS AS status, COUNT(*) count FROM sys.sysprocesses GROUP BY status" ,
+            "Description": "Counts the number of processes per status",
+            "Usage": "GaugesWithLabels",
+            "Columns": [
+                {
+                    "Name": "status",
+                    "Label": "status",
+                    "Usage": "GaugeLabel",
+                    "Order": 0
+                },
+                {
+                    "Name": "count",
+                    "Label": "count",
+                    "Usage": "Gauge"
+                }
+            ]
+        },
+	{
+            "Name": "avg_db",
+            "Query": "WITH Calc AS ( SELECT filename ,db,[Date] ,([size]/131072.0) as size,LAG(([size]/131072.0), 1, 0) OVER ( PARTITION BY filename ORDER BY [Date] ) AS prev_Size_in_GB FROM [DBA].[dbo].[dbsizetest] where filename not like '%.ldf' and growth='open'  )SELECT   db collate SQL_Latin1_General_CP1_CI_AS as db ,avg (size - prev_Size_in_GB)*COUNT(distinct filename) AS avg_growth_MB FROM Calc C where prev_Size_in_GB<>'0.00000000' GROUP BY db",
+            "Usage": "GaugesWithLabels",
+	    "Columns": [
+                {
+                    "Name": "db",
+                    "Label": "db",
+                    "Usage": "GaugeLabel",
+                    "DefaultValue": 0
+                },
+		{
+                    "Name": "avg_growth_MB",
+                    "Label": "avg_growth_MB",
+                    "Usage": "Gauge"
+                }
+
+            ]
+        },
+	{
+            "Name": "stat_disk",
+            "Query": "select db collate SQL_Latin1_General_CP1_CI_AS as db,REPLACE(filename,'\\','//') collate SQL_Latin1_General_CP1_CI_AS as filename,REPLACE(SUBSTRING(filename,0,16),'\\','//') collate SQL_Latin1_General_CP1_CI_AS as Drive ,size,growth collate SQL_Latin1_General_CP1_CI_AS as growth from DBA.dbo.dbsizetest where dateadd(hour, -1, getdate()) < date",
+            "Usage": "GaugesWithLabels",
+            "Columns": [
+                {
+                    "Name": "db",
+                    "Label": "db",
+                    "Usage": "GaugeLabel",
+		    "DefaultValue": 0
+               	},
+		{
+                    "Name": "Drive",
+                    "Label": "Drive",
+                    "Usage": "GaugeLabel",
+		    "DefaultValue": 0
+               	},
+                {
+                    "Name": "filename",
+                    "Label": "filename",
+                    "Usage": "GaugeLabel"
+                },
+		{
+                    "Name": "size",
+                    "Label": "size",
+                    "Usage": "Gauge"
+                },
+		{
+                    "Name": "growth",
+                    "Label": "growth",
+                    "Usage": "GaugeLabel"
+                },
+
+            ]
+        },
+	{
+            "Name": "avaible_file_disk",
+            "Query": "SELECT REPLACE([Drive],'\\','//') collate SQL_Latin1_General_CP1_CI_AS   AS Drive,[Total_GB],[Available_GB],[FreeSpaceInMB] FROM [DBA].[dbo].[Disksize] where dateadd(hour, -1, getdate()) < date",
+            "Usage": "GaugesWithLabels",
+			"Columns": [
+                {
+                    "Name": "Drive",
+                    "Label": "Drive",
+                    "Usage": "GaugeLabel",
+                    "DefaultValue": 0
+                },
+                {
+                    "Name": "Total_GB",
+                    "Label": "Total_GB",
+                    "Usage": "GaugeLabel"
+                },
+                {
+                    "Name": "Available_GB",
+                    "Label": "Avilable_GB",
+                    "Usage": "Gauge"
+                },
+            ]
+        },
+		{
+            "Name": "full_file_disk",
+            "Query": "SELECT REPLACE([Drive],'\\','//') collate SQL_Latin1_General_CP1_CI_AS   AS Drive ,Total_GB,[Total_GB]-[Available_GB] as Full_GB FROM [DBA].[dbo].[Disksize] where dateadd(hour, -1, getdate()) < date",
+            "Usage": "GaugesWithLabels",
+			"Columns": [
+                {
+                    "Name": "Drive",
+                    "Label": "Drive",
+                    "Usage": "GaugeLabel",
+                    "DefaultValue": 0
+                },
+                {
+                    "Name": "Total_GB",
+                    "Label": "Total_GB",
+                    "Usage": "GaugeLabel"
+                },
+                {
+                    "Name": "Full_GB",
+                    "Label": "Full_GB",
+                    "Usage": "Gauge"
+                },
+
+
+            ]
+        },
+		{
+            "Name": "avg_disk",
+            "Query": "WITH Calc AS ( SELECT [Available_GB],[Drive],LAG(([Available_GB]), 1, 0) OVER ( PARTITION BY [Drive] ORDER BY [Date] ) AS prev_Size_in_GB FROM   [dba].[dbo].[Disksize]  )SELECT  REPLACE([Drive],'\\','//') collate SQL_Latin1_General_CP1_CI_AS   AS Drive ,avg (prev_Size_in_GB-[Available_GB]) AS avg_growth_MB FROM     Calc C where prev_Size_in_GB<>'0.00000000' GROUP BY [Drive]order by Drive",
+            "Usage": "GaugesWithLabels",
+			"Columns": [
+                {
+                    "Name": "Drive",
+                    "Label": "Drive",
+                    "Usage": "GaugeLabel",
+                    "DefaultValue": 0
+                },
+				{
+                    "Name": "avg_growth_MB",
+                    "Label": "avg_growth_MB",
+                    "Usage": "Gauge"
+                }
+
+            ]
+        },
+		{
+            "Name": "disk_remaning",
+            "Query": "select REPLACE(d.[Drive],'\\','//')  collate SQL_Latin1_General_CP1_CI_AS   AS Drive, CAST(CAST(Available_GB AS FLOAT ) / CAST(avg_growth_MB AS FLOAT) AS INT) as remaning_days   from  [DBA].[dbo].[diskavg]  a inner join [dba].[dbo].[Disksize] d on d.drive=a.drive where avg_growth_MB<>'0' and avg_growth_MB>0  and  dateadd(hour, -1, getdate()) < date group by d.[Drive],avg_growth_MB,Available_GB",
+            "Usage": "GaugesWithLabels",
+			"Columns": [
+                {
+                    "Name": "Drive",
+                    "Label": "Drive",
+                    "Usage": "GaugeLabel",
+                    "DefaultValue": 0
+                },
+				{
+                    "Name": "remaning_days",
+                    "Label": "remaning_days",
+                    "Usage": "Gauge"
+                }
+
+			]
+        }
+
+    ],
+    "MillisecondTimeout": 10000
+}
