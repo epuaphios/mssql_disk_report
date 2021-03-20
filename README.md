@@ -4,7 +4,7 @@ basic exporter install
 
 https://github.com/DanielOliver/mssql_exporter
 
-and my file metrics.json copy project exporter
+and file metrics.json copy project exporter
 
 job script run mssql server 
 
